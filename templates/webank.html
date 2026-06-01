@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微众银行 · 理财产品收益排行 | Market Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #0f1117;
+            --bg-card: #1a1d27;
+            --bg-card-hover: #22263a;
+            --bg-glass: rgba(255,255,255,0.03);
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b90a0;
+            --text-muted: #5a5f73;
+            --border: rgba(255,255,255,0.06);
+            --accent: #10b981;
+            --accent-glow: rgba(16,185,129,0.15);
+            --blue: #3b82f6;
+            --blue-glow: rgba(59,130,246,0.15);
+            --purple: #8b5cf6;
+            --purple-glow: rgba(139,92,246,0.15);
+            --amber: #f59e0b;
+            --amber-glow: rgba(245,158,11,0.15);
+            --red: #ef4444;
+            --green: #10b981;
+            --radius: 16px;
+            --radius-sm: 12px;
+            --radius-xs: 8px;
+            --shadow: 0 4px 24px rgba(0,0,0,0.3);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        body {
+            font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+        /* ============ Navigation ============ */
+        .nav-bar {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(15,17,23,0.85);
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 0;
+        }
+        .nav-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            max-width: 1200px; margin: 0 auto; padding: 0 20px;
+        }
+        .nav-logo { font-size: 18px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .nav-logo span { color: var(--accent); }
+        .nav-tabs { display: flex; gap: 4px; }
+        .nav-tab {
+            padding: 8px 18px; border-radius: 100px; background: transparent;
+            color: var(--text-secondary); border: 1px solid transparent;
+            text-decoration: none; font-size: 13px; transition: var(--transition);
+            white-space: nowrap; font-family: inherit;
+        }
+        .nav-tab:hover { color: var(--text-primary); background: var(--bg-glass); }
+        .nav-tab.active { background: var(--accent); color: #fff; font-weight: 700; border-color: var(--accent); }
+
+        /* ============ Hero Section ============ */
+        .hero {
+            padding: 60px 0 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,0.08) 0%, transparent 60%),
+                        radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.05) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 50%, rgba(139,92,246,0.05) 0%, transparent 50%);
+            animation: heroGlow 8s ease-in-out infinite alternate;
+        }
+        @keyframes heroGlow {
+            0% { transform: translateY(0) scale(1); opacity: 0.7; }
+            100% { transform: translateY(-20px) scale(1.05); opacity: 1; }
+        }
+        .hero-content { position: relative; z-index: 1; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 6px 16px; border-radius: 100px;
+            background: var(--accent-glow); border: 1px solid rgba(16,185,129,0.2);
+            color: var(--accent); font-size: 12px; font-weight: 700;
+            margin-bottom: 20px;
+        }
+        .hero h1 {
+            font-size: 36px; font-weight: 700; color: var(--text-primary);
+            letter-spacing: -1px; margin-bottom: 12px;
+            background: linear-gradient(135deg, #e8eaf0 0%, #10b981 50%, #3b82f6 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero .subtitle { color: var(--text-secondary); font-size: 15px; font-weight: 300; margin-bottom: 8px; }
+        .hero .update-time { color: var(--text-muted); font-size: 12px; }
+
+        /* ============ Summary Cards ============ */
+        .summary-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+            margin: -20px 0 40px; position: relative; z-index: 2;
+        }
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            text-align: center;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+        .summary-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--blue));
+            opacity: 0; transition: var(--transition);
+        }
+        .summary-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,0.1); }
+        .summary-card:hover::before { opacity: 1; }
+        .summary-card .icon { font-size: 28px; margin-bottom: 12px; }
+        .summary-card .value {
+            font-size: 28px; font-weight: 700; color: var(--text-primary);
+            letter-spacing: -1px;
+        }
+        .summary-card .label { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+        .summary-card .sub { color: var(--text-muted); font-size: 11px; margin-top: 8px; }
+
+        /* ============ Category Section ============ */
+        .category-section { margin-bottom: 40px; }
+        .category-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+        }
+        .category-title {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 20px; font-weight: 700;
+        }
+        .category-title .badge {
+            padding: 4px 12px; border-radius: 100px; font-size: 11px;
+            font-weight: 400; color: var(--text-secondary);
+            background: var(--bg-glass); border: 1px solid var(--border);
+        }
+        .category-stats {
+            display: flex; gap: 16px; align-items: center;
+        }
+        .stat-pill {
+            display: flex; align-items: center; gap: 4px;
+            padding: 4px 12px; border-radius: 100px;
+            font-size: 12px; color: var(--text-secondary);
+            background: var(--bg-glass); border: 1px solid var(--border);
+        }
+        .stat-pill .val { color: var(--accent); font-weight: 700; }
+
+        /* ============ Sort Controls ============ */
+        .controls {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+        }
+        .sort-group {
+            display: flex; gap: 4px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 100px; padding: 4px;
+        }
+        .sort-btn {
+            padding: 6px 16px; border-radius: 100px;
+            background: transparent; border: none;
+            color: var(--text-secondary); font-size: 12px;
+            cursor: pointer; transition: var(--transition);
+            font-family: inherit; white-space: nowrap;
+        }
+        .sort-btn:hover { color: var(--text-primary); }
+        .sort-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
+        .view-toggle {
+            display: flex; gap: 4px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 100px; padding: 4px;
+        }
+        .view-btn {
+            padding: 6px 14px; border-radius: 100px;
+            background: transparent; border: none;
+            color: var(--text-secondary); font-size: 14px;
+            cursor: pointer; transition: var(--transition);
+        }
+        .view-btn:hover { color: var(--text-primary); }
+        .view-btn.active { background: var(--bg-glass); color: var(--text-primary); }
+
+        /* ============ Product Cards Grid ============ */
+        .products-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 16px; margin-bottom: 40px;
+        }
+        .product-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px 24px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            animation: cardIn 0.5s ease-out backwards;
+        }
+        .product-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(16,185,129,0.3);
+            box-shadow: 0 8px 32px rgba(16,185,129,0.1);
+        }
+        .product-card .rank {
+            position: absolute; top: 12px; right: 16px;
+            font-size: 32px; font-weight: 700; color: rgba(255,255,255,0.04);
+            line-height: 1;
+        }
+        .product-card .rank.top3 { color: rgba(245,158,11,0.15); }
+        @keyframes cardIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .product-card-header {
+            display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px;
+        }
+        .product-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+        }
+        .product-icon.green { background: var(--accent-glow); }
+        .product-icon.blue { background: var(--blue-glow); }
+        .product-icon.purple { background: var(--purple-glow); }
+        .product-name { font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 2px; }
+        .product-provider { font-size: 11px; color: var(--text-muted); }
+        .product-tags { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .tag {
+            padding: 2px 8px; border-radius: 100px; font-size: 10px;
+            background: var(--accent-glow); color: var(--accent);
+            border: 1px solid rgba(16,185,129,0.2);
+        }
+        .tag.hot { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.2); }
+        .tag.new { background: var(--blue-glow); color: var(--blue); border-color: rgba(59,130,246,0.2); }
+        .tag.stable { background: var(--purple-glow); color: var(--purple); border-color: rgba(139,92,246,0.2); }
+
+        .product-rate {
+            display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px;
+        }
+        .rate-value {
+            font-size: 32px; font-weight: 700; color: var(--accent);
+            letter-spacing: -1px; line-height: 1;
+        }
+        .rate-unit { font-size: 12px; color: var(--text-muted); }
+        .rate-change {
+            font-size: 11px; padding: 2px 8px; border-radius: 100px;
+        }
+        .rate-change.up { background: rgba(16,185,129,0.1); color: var(--green); }
+        .rate-change.down { background: rgba(239,68,68,0.1); color: var(--red); }
+
+        .product-rates-row {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+            margin-bottom: 12px;
+        }
+        .mini-rate {
+            text-align: center; padding: 8px 4px;
+            background: var(--bg-glass); border-radius: var(--radius-xs);
+            border: 1px solid var(--border);
+        }
+        .mini-rate .period { font-size: 10px; color: var(--text-muted); margin-bottom: 2px; }
+        .mini-rate .val { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
+        .product-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            padding-top: 12px; border-top: 1px solid var(--border);
+        }
+        .product-meta {
+            display: flex; gap: 12px;
+        }
+        .meta-item {
+            display: flex; align-items: center; gap: 4px;
+            font-size: 11px; color: var(--text-muted);
+        }
+        .meta-item .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+        }
+        .dot.r1 { background: var(--green); }
+        .dot.r2 { background: var(--amber); }
+        .risk-badge {
+            font-size: 10px; padding: 2px 8px; border-radius: 100px;
+            font-weight: 700;
+        }
+        .risk-badge.r1 { background: var(--accent-glow); color: var(--accent); }
+        .risk-badge.r2 { background: var(--amber-glow); color: var(--amber); }
+
+        /* Mini chart in card */
+        .mini-chart { height: 40px; margin: 8px 0; }
+
+        /* ============ Table View ============ */
+        .table-container {
+            overflow-x: auto; margin-bottom: 40px;
+            border-radius: var(--radius); border: 1px solid var(--border);
+            background: var(--bg-card);
+            display: none;
+        }
+        .table-container.active { display: block; }
+        .products-grid.hidden { display: none; }
+        table {
+            width: 100%; border-collapse: collapse;
+            font-size: 13px;
+        }
+        th {
+            padding: 14px 16px;
+            text-align: left;
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            user-select: none;
+        }
+        th:hover { color: var(--text-secondary); }
+        th.sorted { color: var(--accent); }
+        th .sort-arrow { margin-left: 4px; font-size: 10px; }
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+        tr:hover td { background: var(--bg-glass); }
+        tr:last-child td { border-bottom: none; }
+        .rank-cell {
+            font-weight: 700; color: var(--text-muted); width: 40px;
+        }
+        .rank-cell.top1 { color: #f59e0b; }
+        .rank-cell.top2 { color: #94a3b8; }
+        .rank-cell.top3 { color: #cd7c32; }
+        .name-cell { font-weight: 700; }
+        .rate-cell { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .rate-cell.highlight { color: var(--accent); }
+
+        /* ============ Chart Section ============ */
+        .chart-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 40px;
+        }
+        .chart-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+        }
+        .chart-title { font-size: 18px; font-weight: 700; }
+        .chart-legend {
+            display: flex; gap: 8px; flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 100px;
+            background: var(--bg-glass); border: 1px solid var(--border);
+            font-size: 11px; color: var(--text-secondary);
+            cursor: pointer; transition: var(--transition);
+        }
+        .legend-item:hover { border-color: rgba(255,255,255,0.1); }
+        .legend-item.active { border-color: var(--accent); color: var(--text-primary); }
+        .legend-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+        .chart-canvas-wrap { position: relative; height: 300px; }
+
+        /* ============ Footer ============ */
+        .footer {
+            text-align: center; padding: 40px 0;
+            color: var(--text-muted); font-size: 12px;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+
+        /* ============ Responsive ============ */
+        @media (max-width: 768px) {
+            .container { padding: 0 16px; }
+            .nav-tabs { gap: 2px; }
+            .nav-tab { padding: 6px 12px; font-size: 12px; }
+            .hero { padding: 40px 0 30px; }
+            .hero h1 { font-size: 26px; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: -10px; }
+            .summary-card { padding: 16px; }
+            .summary-card .value { font-size: 22px; }
+            .products-grid { grid-template-columns: 1fr; }
+            .product-rate .rate-value { font-size: 28px; }
+            .product-rates-row { grid-template-columns: repeat(2, 1fr); }
+            .category-header { flex-direction: column; align-items: flex-start; }
+            .chart-canvas-wrap { height: 220px; }
+            .controls { flex-direction: column; align-items: flex-start; }
+        }
+        @media (max-width: 480px) {
+            .summary-grid { grid-template-columns: 1fr 1fr; }
+            .nav-tab { padding: 6px 10px; font-size: 11px; }
+        }
+
+        /* ============ Scrollbar ============ */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 100px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+        /* ============ Pulse animation ============ */
+        .pulse {
+            display: inline-block; width: 8px; height: 8px;
+            border-radius: 50%; background: var(--accent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+        }
+
+        /* Tooltip */
+        .tooltip-wrap { position: relative; }
+        .tooltip-wrap .tip {
+            display: none; position: absolute; bottom: 100%; left: 50%;
+            transform: translateX(-50%); padding: 6px 12px;
+            background: #333; color: #fff; font-size: 11px;
+            border-radius: 8px; white-space: nowrap; z-index: 10;
+            margin-bottom: 6px;
+        }
+        .tooltip-wrap:hover .tip { display: block; }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav-bar">
+        <div class="nav-inner">
+            <a href="/" class="nav-logo">📊 <span>Market</span> Dashboard</a>
+            <div class="nav-tabs">
+                <a href="/us" class="nav-tab">🇺🇸 美股</a>
+                <a href="/hk" class="nav-tab">🇭🇰 港股</a>
+                <a href="/cn" class="nav-tab">🇨🇳 A股</a>
+                <a href="/webank" class="nav-tab active">🏦 微众理财</a>
+                <a href="/trading" class="nav-tab">📈 操盘</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-content">
+                <div class="hero-badge"><span class="pulse"></span> 实时追踪</div>
+                <h1>微众银行 · 理财产品收益排行</h1>
+                <p class="subtitle">活期plus · 稳健理财 · 固收+ 全产品线收益监控</p>
+                <p class="update-time">数据更新于 {{ data.last_updated }} · 共 {{ data.total_count }} 款产品</p>
+            </div>
+        </section>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="icon">📦</div>
+                <div class="value">{{ data.total_count }}</div>
+                <div class="label">在监产品数</div>
+                <div class="sub">3 大品类全覆盖</div>
+            </div>
+            <div class="summary-card">
+                <div class="icon">📊</div>
+                <div class="value">{{ data.overall_avg_7d }}%</div>
+                <div class="label">全品类平均 7 日年化</div>
+                <div class="sub">加权均值</div>
+            </div>
+            <div class="summary-card">
+                <div class="icon">🏆</div>
+                <div class="value">{{ data.best_product.rate_7d }}%</div>
+                <div class="label">最高 7 日年化</div>
+                <div class="sub">{{ data.best_product.name }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="icon">📈</div>
+                <div class="value">{{ data.overall_avg_1y }}%</div>
+                <div class="label">全品类平均近 1 年</div>
+                <div class="sub">历史业绩均值</div>
+            </div>
+        </div>
+
+        <!-- Global Sort Controls -->
+        <div class="controls">
+            <div class="sort-group" id="globalSort">
+                <button class="sort-btn active" data-sort="rate_7d" onclick="setGlobalSort(this)">7日年化</button>
+                <button class="sort-btn" data-sort="rate_1m" onclick="setGlobalSort(this)">近1月</button>
+                <button class="sort-btn" data-sort="rate_3m" onclick="setGlobalSort(this)">近3月</button>
+                <button class="sort-btn" data-sort="rate_6m" onclick="setGlobalSort(this)">近6月</button>
+                <button class="sort-btn" data-sort="rate_1y" onclick="setGlobalSort(this)">近1年</button>
+            </div>
+            <div class="view-toggle">
+                <button class="view-btn active" onclick="setView('grid')" title="卡片视图">▦</button>
+                <button class="view-btn" onclick="setView('table')" title="列表视图">☰</button>
+            </div>
+        </div>
+
+        <!-- Categories -->
+        {% for cat_name, cat in data.categories.items() %}
+        <section class="category-section" data-category="{{ cat_name }}">
+            <div class="category-header">
+                <div class="category-title">
+                    {{ cat.icon }} {{ cat_name }}
+                    <span class="badge">{{ cat.count }} 款产品</span>
+                </div>
+                <div class="category-stats">
+                    <div class="stat-pill">7日均值 <span class="val">{{ cat.avg_rate_7d }}%</span></div>
+                    <div class="stat-pill">1年均值 <span class="val">{{ cat.avg_rate_1y }}%</span></div>
+                    <div class="stat-pill">区间 <span class="val">{{ cat.min_rate_7d }}%~{{ cat.max_rate_7d }}%</span></div>
+                </div>
+            </div>
+
+            <!-- Card Grid View -->
+            <div class="products-grid" id="grid-{{ cat_name }}">
+                {% for p in cat.products %}
+                <div class="product-card" style="animation-delay: {{ loop.index0 * 0.05 }}s" data-rates='{{ p.history_30d | tojson }}'>
+                    <div class="rank {{ 'top3' if loop.index <= 3 }}">#{{ loop.index }}</div>
+                    <div class="product-card-header">
+                        <div class="product-icon {{ 'green' if cat_name == '活期plus' else ('blue' if cat_name == '稳健理财' else 'purple') }}">
+                            {{ cat.icon }}
+                        </div>
+                        <div>
+                            <div class="product-name">{{ p.name }}</div>
+                            <div class="product-provider">{{ p.provider }}</div>
+                            <div class="product-tags">
+                                {% for tag in p.tags %}
+                                <span class="tag {{ 'hot' if tag in ['热销','热门'] else ('new' if tag == '新品' else ('stable' if tag == '稳健' else '')) }}">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="product-rate">
+                        <span class="rate-value">{{ p.rate_7d }}</span>
+                        <span class="rate-unit">% 7日年化</span>
+                    </div>
+                    <canvas class="mini-chart" id="mini-{{ p.id }}"></canvas>
+                    <div class="product-rates-row">
+                        <div class="mini-rate">
+                            <div class="period">近1月</div>
+                            <div class="val">{{ p.rate_1m }}%</div>
+                        </div>
+                        <div class="mini-rate">
+                            <div class="period">近3月</div>
+                            <div class="val">{{ p.rate_3m }}%</div>
+                        </div>
+                        <div class="mini-rate">
+                            <div class="period">近6月</div>
+                            <div class="val">{{ p.rate_6m }}%</div>
+                        </div>
+                        <div class="mini-rate">
+                            <div class="period">近1年</div>
+                            <div class="val">{{ p.rate_1y }}%</div>
+                        </div>
+                    </div>
+                    <div class="product-footer">
+                        <div class="product-meta">
+                            <div class="meta-item">
+                                <div class="dot {{ p.risk | lower }}"></div>
+                                {{ p.risk }}
+                            </div>
+                            <div class="meta-item">{{ p.term }}</div>
+                            <div class="meta-item">
+                                {% if p.min_amount < 1 %}0门槛{% elif p.min_amount == 1 %}1元起{% else %}{{ p.min_amount }}元起{% endif %}
+                            </div>
+                        </div>
+                        <span class="risk-badge {{ p.risk | lower }}">{{ p.risk }} {{ '低风险' if p.risk == 'R1' else '中低风险' }}</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Table View -->
+            <div class="table-container" id="table-{{ cat_name }}">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>产品名称</th>
+                            <th>提供方</th>
+                            <th class="sorted" data-field="rate_7d">7日年化 <span class="sort-arrow">▼</span></th>
+                            <th data-field="rate_1m">近1月</th>
+                            <th data-field="rate_3m">近3月</th>
+                            <th data-field="rate_6m">近6月</th>
+                            <th data-field="rate_1y">近1年</th>
+                            <th>期限</th>
+                            <th>风险</th>
+                            <th>起购</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in cat.ranked_by_7d %}
+                        <tr>
+                            <td class="rank-cell {{ 'top1' if loop.index == 1 else ('top2' if loop.index == 2 else ('top3' if loop.index == 3 else '')) }}">#{{ loop.index }}</td>
+                            <td class="name-cell">{{ p.name }}</td>
+                            <td style="color:var(--text-secondary)">{{ p.provider }}</td>
+                            <td class="rate-cell highlight">{{ p.rate_7d }}%</td>
+                            <td class="rate-cell">{{ p.rate_1m }}%</td>
+                            <td class="rate-cell">{{ p.rate_3m }}%</td>
+                            <td class="rate-cell">{{ p.rate_6m }}%</td>
+                            <td class="rate-cell">{{ p.rate_1y }}%</td>
+                            <td style="color:var(--text-secondary)">{{ p.term }}</td>
+                            <td><span class="risk-badge {{ p.risk | lower }}">{{ p.risk }}</span></td>
+                            <td style="color:var(--text-muted)">{% if p.min_amount < 1 %}0元{% elif p.min_amount == 1 %}1元{% else %}{{ p.min_amount }}元{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endfor %}
+
+        <!-- Chart Section -->
+        <section class="chart-section">
+            <div class="chart-header">
+                <div class="chart-title">📈 30日收益率走势对比</div>
+                <div class="chart-legend" id="chartLegend"></div>
+            </div>
+            <div class="chart-canvas-wrap">
+                <canvas id="returnChart"></canvas>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p>数据来源：微众银行 · 仅供参考，不构成投资建议</p>
+            <p style="margin-top:4px">📊 <a href="/">Market Dashboard</a> · 实时市场估值 · 量化投资</p>
+        </div>
+    </footer>
+
+    <script>
+        // ============ DATA ============
+        const allData = {{ data | tojson }};
+        const categoryColors = {
+            '活期plus': { main: '#10b981', bg: 'rgba(16,185,129,0.1)' },
+            '稳健理财': { main: '#3b82f6', bg: 'rgba(59,130,246,0.1)' },
+            '固收+': { main: '#8b5cf6', bg: 'rgba(139,92,246,0.1)' }
+        };
+
+        // ============ MINI CHARTS ============
+        function drawMiniCharts() {
+            document.querySelectorAll('.product-card').forEach(card => {
+                const canvas = card.querySelector('.mini-chart');
+                if (!canvas) return;
+                const rates = JSON.parse(card.dataset.rates || '[]');
+                if (!rates.length) return;
+
+                const catName = card.closest('.category-section')?.dataset.category || '活期plus';
+                const color = categoryColors[catName]?.main || '#10b981';
+
+                const ctx = canvas.getContext('2d');
+                const w = canvas.offsetWidth * 2;
+                const h = canvas.offsetHeight * 2;
+                canvas.width = w;
+                canvas.height = h;
+                ctx.scale(2, 2);
+
+                const values = rates.map(r => r.rate);
+                const min = Math.min(...values) - 0.05;
+                const max = Math.max(...values) + 0.05;
+                const cw = canvas.offsetWidth;
+                const ch = canvas.offsetHeight;
+
+                // Gradient fill
+                const grad = ctx.createLinearGradient(0, 0, 0, ch);
+                grad.addColorStop(0, color + '30');
+                grad.addColorStop(1, color + '00');
+
+                ctx.beginPath();
+                values.forEach((v, i) => {
+                    const x = (i / (values.length - 1)) * cw;
+                    const y = ch - ((v - min) / (max - min)) * ch;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else {
+                        const px = ((i - 1) / (values.length - 1)) * cw;
+                        const py = ch - ((values[i-1] - min) / (max - min)) * ch;
+                        const cpx = (px + x) / 2;
+                        ctx.bezierCurveTo(cpx, py, cpx, y, x, y);
+                    }
+                });
+                ctx.lineTo(cw, ch);
+                ctx.lineTo(0, ch);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                // Line
+                ctx.beginPath();
+                values.forEach((v, i) => {
+                    const x = (i / (values.length - 1)) * cw;
+                    const y = ch - ((v - min) / (max - min)) * ch;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else {
+                        const px = ((i - 1) / (values.length - 1)) * cw;
+                        const py = ch - ((values[i-1] - min) / (max - min)) * ch;
+                        const cpx = (px + x) / 2;
+                        ctx.bezierCurveTo(cpx, py, cpx, y, x, y);
+                    }
+                });
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // End dot
+                const lastX = cw;
+                const lastY = ch - ((values[values.length-1] - min) / (max - min)) * ch;
+                ctx.beginPath();
+                ctx.arc(lastX - 2, lastY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+            });
+        }
+
+        // ============ MAIN CHART ============
+        let mainChart = null;
+        const chartProducts = {};
+        function initMainChart() {
+            const ctx = document.getElementById('returnChart').getContext('2d');
+            // Pick top products for chart
+            const topProducts = allData.all_products.slice(0, 6);
+            const datasets = topProducts.map((p, i) => {
+                const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
+                const color = colors[i % colors.length];
+                const data = p.history_30d.map(h => h.rate);
+                const labels = p.history_30d.map(h => h.date);
+                chartProducts[p.id] = { name: p.name, color, visible: true };
+                return {
+                    label: p.name,
+                    data: data,
+                    borderColor: color,
+                    backgroundColor: color + '15',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    tension: 0.4,
+                    fill: false,
+                };
+            });
+
+            mainChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: topProducts[0].history_30d.map(h => h.date),
+                    datasets: datasets,
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(26,29,39,0.95)',
+                            titleColor: '#e8eaf0',
+                            bodyColor: '#8b90a0',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 12,
+                            titleFont: { family: "'LXGW WenKai', sans-serif", weight: '700' },
+                            bodyFont: { family: "'LXGW WenKai', sans-serif" },
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%`,
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { color: '#5a5f73', font: { size: 10, family: "'LXGW WenKai'" }, maxRotation: 0, maxTicksLimit: 10 }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: {
+                                color: '#5a5f73',
+                                font: { size: 10, family: "'LXGW WenKai'" },
+                                callback: v => v.toFixed(2) + '%'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Legend
+            const legendEl = document.getElementById('chartLegend');
+            topProducts.forEach((p, i) => {
+                const colors = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444', '#06b6d4'];
+                const item = document.createElement('div');
+                item.className = 'legend-item active';
+                item.innerHTML = `<span class="legend-dot" style="background:${colors[i]}"></span>${p.name}`;
+                item.addEventListener('click', () => {
+                    const ds = mainChart.data.datasets[i];
+                    const meta = mainChart.getDatasetMeta(i);
+                    meta.hidden = !meta.hidden;
+                    item.classList.toggle('active');
+                    mainChart.update();
+                });
+                legendEl.appendChild(item);
+            });
+        }
+
+        // ============ SORT & VIEW ============
+        let currentSort = 'rate_7d';
+        let currentView = 'grid';
+
+        function setGlobalSort(btn) {
+            document.querySelectorAll('#globalSort .sort-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSort = btn.dataset.sort;
+            sortAllCategories();
+        }
+
+        function sortAllCategories() {
+            Object.keys(allData.categories).forEach(catName => {
+                const grid = document.getElementById('grid-' + catName);
+                if (!grid) return;
+                const cards = Array.from(grid.querySelectorAll('.product-card'));
+                const cat = allData.categories[catName];
+                const sorted = [...cat.products].sort((a, b) => b[currentSort] - a[currentSort]);
+
+                // Reorder cards
+                sorted.forEach((p, i) => {
+                    const card = cards.find(c => {
+                        const name = c.querySelector('.product-name')?.textContent;
+                        return name === p.name;
+                    });
+                    if (card) {
+                        card.style.animationDelay = (i * 0.03) + 's';
+                        card.querySelector('.rank').textContent = '#' + (i + 1);
+                        card.querySelector('.rank').className = 'rank' + (i < 3 ? ' top3' : '');
+                        grid.appendChild(card);
+                    }
+                });
+
+                // Reorder table rows
+                const table = document.getElementById('table-' + catName);
+                if (table) {
+                    const tbody = table.querySelector('tbody');
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    sorted.forEach((p, i) => {
+                        const row = rows.find(r => r.querySelector('.name-cell')?.textContent === p.name);
+                        if (row) {
+                            const rankCell = row.querySelector('.rank-cell');
+                            rankCell.textContent = '#' + (i + 1);
+                            rankCell.className = 'rank-cell' + (i === 0 ? ' top1' : (i === 1 ? ' top2' : (i === 2 ? ' top3' : '')));
+                            tbody.appendChild(row);
+                        }
+                    });
+                }
+            });
+        }
+
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            Object.keys(allData.categories).forEach(catName => {
+                const grid = document.getElementById('grid-' + catName);
+                const table = document.getElementById('table-' + catName);
+                if (view === 'grid') {
+                    grid.classList.remove('hidden');
+                    table.classList.remove('active');
+                } else {
+                    grid.classList.add('hidden');
+                    table.classList.add('active');
+                }
+            });
+        }
+
+        // ============ INIT ============
+        document.addEventListener('DOMContentLoaded', () => {
+            drawMiniCharts();
+            initMainChart();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📖 估值指标说明 | Market Valuation Guide</title>
+    <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #faf8f5;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --border: #e5e7eb;
+            --green: #16a34a;
+            --amber: #d97706;
+            --red: #dc2626;
+            --blue: #2563eb;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'LXGW WenKai', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 24px;
+            transition: color 0.2s;
+        }
+        .back-link:hover { color: var(--text-primary); }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+        h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 40px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+        }
+        h3 {
+            font-size: 16px;
+            font-weight: 700;
+            margin: 24px 0 8px;
+            color: var(--text-primary);
+        }
+        p { margin-bottom: 12px; font-size: 14px; }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title .code {
+            background: #f3f4f6;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-weight: 400;
+        }
+        .card p { color: var(--text-secondary); font-size: 13px; margin-bottom: 8px; }
+        .card p:last-child { margin-bottom: 0; }
+        .signal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .signal-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            background: #f9fafb;
+        }
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-green { background: var(--green); }
+        .dot-amber { background: var(--amber); }
+        .dot-red { background: var(--red); }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        td { color: var(--text-primary); }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .tag-green { background: #dcfce7; color: #166534; }
+        .tag-amber { background: #fef3c7; color: #92400e; }
+        .tag-red { background: #fee2e2; color: #991b1b; }
+        .range-demo {
+            background: #f9fafb;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+        }
+        .range-demo-bar {
+            position: relative;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin: 8px 4px;
+        }
+        .range-demo-bar::before {
+            content: '';
+            position: absolute;
+            left: 20%;
+            right: 20%;
+            top: 0;
+            height: 100%;
+            background: #bfdbfe;
+            border-radius: 4px;
+        }
+        .range-demo-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .highlight { background: #fef3c7; padding: 1px 4px; border-radius: 4px; }
+        .tip {
+            background: #eff6ff;
+            border-left: 3px solid var(--blue);
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin: 12px 0;
+            font-size: 13px;
+            color: #1e40af;
+        }
+        @media (max-width: 640px) {
+            .container { padding: 24px 16px 60px; }
+            h1 { font-size: 22px; }
+            .signal-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← 返回仪表盘</a>
+        <h1>📖 估值指标说明</h1>
+        <p class="subtitle">帮助你理解仪表盘中的每一个数字和图表</p>
+
+        <!-- ==================== 指标代码一览 ==================== -->
+        <h2>📋 指数代码一览</h2>
+
+        <h3>🇺🇸 美股指数</h3>
+        <table>
+            <tr><th>名称</th><th>代码</th><th>说明</th></tr>
+            <tr><td>标普500</td><td><strong>SPY</strong></td><td>跟踪 S&P 500 指数的 ETF，覆盖美股 500 家最大上市公司</td></tr>
+            <tr><td>纳斯达克100</td><td><strong>QQQ</strong></td><td>跟踪 NASDAQ 100 指数的 ETF，以科技股为主</td></tr>
+        </table>
+
+        <h3>🇭🇰 港股指数</h3>
+        <table>
+            <tr><th>名称</th><th>代码</th><th>说明</th></tr>
+            <tr><td>恒生指数</td><td><strong>^HSI</strong></td><td>香港股市最核心的指数，包含 82 只最大市值成分股</td></tr>
+            <tr><td>沪港深红利低波</td><td><strong>3110.HK</strong></td><td>Global X 恒生高股息低波动 ETF，追踪高分红、低波动的优质公司</td></tr>
+        </table>
+
+        <!-- ==================== 估值指标详解 ==================== -->
+        <h2>📐 估值指标详解</h2>
+
+        <div class="card">
+            <div class="card-title">市盈率 (PE) <span class="code">P/E Ratio</span></div>
+            <p><strong>公式：</strong>股价 ÷ 每股收益 (EPS)</p>
+            <p><strong>含义：</strong>你为每 1 元盈利付出多少价格。PE 越低，说明你"买到的盈利"越便宜。</p>
+            <p><strong>参考区间：</strong>美股历史中位数 15-20；港股历史中位数 10-12。当前 PE 高于历史 80% 的时间，说明偏贵。</p>
+            <div class="tip">💡 PE 是最常用的估值指标，但它有局限性：盈利可能是周期性的（比如经济衰退时盈利下降导致 PE 虚高）。这就是为什么需要 CAPE 来辅助判断。</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">周期调整市盈率 (CAPE) <span class="code">Shiller CAPE</span></div>
+            <p><strong>公式：</strong>股价 ÷ 近 10 年经通胀调整的平均收益</p>
+            <p><strong>含义：</strong>由诺贝尔奖得主 Robert Shiller 发明，用 10 年平均收益消除经济周期波动，比普通 PE 更稳定。</p>
+            <p><strong>参考区间：</strong>历史中位数约 16-17。低于 15 属于极度便宜（如 2009 年），高于 35 属于偏贵。</p>
+            <div class="tip">💡 CAPE 在美股有超过 150 年的历史数据，是衡量市场整体估值最可靠的长期指标。但它对新兴市场和个别股票的参考价值有限。</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">市净率 (PB) <span class="code">P/B Ratio</span></div>
+            <p><strong>公式：</strong>股价 ÷ 每股净资产 (Book Value)</p>
+            <p><strong>含义：</strong>你为每 1 元净资产付出多少价格。PB < 1 称为"破净"，意味着股价低于公司清算价值。</p>
+            <p><strong>参考区间：</strong>标普历史中位数 2.5-3.5。港股很多标的 PB < 1，这在成熟市场中并不罕见。</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">股息率 <span class="code">Dividend Yield</span></div>
+            <p><strong>公式：</strong>年度每股股息 ÷ 股价 × 100%</p>
+            <p><strong>含义：</strong>你持有股票每年能获得的现金分红比例。股息率越高，说明股价相对分红越便宜。</p>
+            <p><strong>参考区间：</strong>标普历史均值 1.5-2.0%。港股高股息标的常见 3-6%。</p>
+            <div class="tip">💡 注意：股息率和股价反向运动——股价涨，股息率跌。所以股息率 0%ile 不代表公司不分红，而是股价相对于分红涨了很多。</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">200 日均线偏离 <span class="code">200-Day MA Deviation</span></div>
+            <p><strong>公式：</strong>(当前价格 - 200日均价) ÷ 200日均价 × 100%</p>
+            <p><strong>含义：</strong>衡量价格相对长期趋势的偏离程度。正值 = 高于均线（可能过热），负值 = 低于均线（可能超卖）。</p>
+            <p><strong>参考区间：</strong>±5% 以内为正常波动；+10% 以上可能过热；-10% 以下可能超卖。</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">风险溢价 <span class="code">Risk Premium</span></div>
+            <p><strong>公式：</strong>盈利收益率 (1/PE) - 10年期国债收益率</p>
+            <p><strong>含义：</strong>股票相对于无风险资产（国债）的额外收益预期。正值越大，股票越有吸引力。</p>
+            <p><strong>参考区间：</strong>正值 = 股票相对债券有吸引力；负值 = 债券更优。当前美股风险溢价为负，说明买债券比买股票更划算。</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">巴菲特指标 <span class="code">Buffett Indicator</span></div>
+            <p><strong>公式：</strong>美股总市值 (Wilshire 5000) ÷ 美国 GDP × 100%</p>
+            <p><strong>含义：</strong>巴菲特称之为"衡量估值水平的最佳单一指标"。比值越高，市场相对于实体经济越贵。</p>
+            <p><strong>参考区间：</strong>低于 80% 偏便宜，100-120% 合理，高于 150% 偏贵。需要 FRED API Key 才能启用。</p>
+        </div>
+
+        <!-- ==================== 信号等级 ==================== -->
+        <h2>🚦 信号等级说明</h2>
+        <p>仪表盘根据加权评分（0-100 分）给出综合估值信号：</p>
+        <div class="signal-grid">
+            <div class="signal-item"><div class="dot dot-green"></div><div><strong>🟢 偏便宜</strong><br>≥ 70 分</div></div>
+            <div class="signal-item"><div class="dot dot-green"></div><div><strong>🟢 合理偏低</strong><br>55-69 分</div></div>
+            <div class="signal-item"><div class="dot dot-amber"></div><div><strong>🟡 合理</strong><br>45-54 分</div></div>
+            <div class="signal-item"><div class="dot dot-amber"></div><div><strong>🟠 合理偏高</strong><br>35-44 分</div></div>
+            <div class="signal-item"><div class="dot dot-red"></div><div><strong>🔴 偏贵</strong><br>20-34 分</div></div>
+            <div class="signal-item"><div class="dot dot-red"></div><div><strong>🔴🔴 极度偏贵</strong><br>< 20 分</div></div>
+        </div>
+        <p>综合评分 = 各指标评分的加权平均，权重如下：</p>
+        <table>
+            <tr><th>指标</th><th>权重</th><th>说明</th></tr>
+            <tr><td>CAPE</td><td>25%</td><td>长期估值的核心指标</td></tr>
+            <tr><td>PE</td><td>20%</td><td>短期估值参考</td></tr>
+            <tr><td>风险溢价</td><td>20%</td><td>股票 vs 债券的相对吸引力</td></tr>
+            <tr><td>MA200偏离</td><td>15%</td><td>趋势偏离程度</td></tr>
+            <tr><td>PB</td><td>10%</td><td>资产估值</td></tr>
+            <tr><td>股息率</td><td>10%</td><td>分红收益</td></tr>
+        </table>
+
+        <!-- ==================== 范围条和百分位 ==================== -->
+        <h2>📊 如何读懂范围条和百分位</h2>
+
+        <h3>百分位徽章 (XX%ile)</h3>
+        <p>表示当前值在近 10 年历史中处于什么位置。<strong>XX%ile = 当前值超过了 XX% 的历史时间。</strong></p>
+        <div class="signal-grid">
+            <div class="signal-item"><span class="tag tag-green">≤ 30%ile</span> 历史低位，偏便宜</div>
+            <div class="signal-item"><span class="tag tag-amber">30-70%ile</span> 历史中位，合理区间</div>
+            <div class="signal-item"><span class="tag tag-red">> 70%ile</span> 历史高位，偏贵</div>
+        </div>
+
+        <h3>近 10 年范围条</h3>
+        <p>每个有历史数据的指标下方都有一条范围条，显示当前值在近 10 年中的位置：</p>
+        <div class="range-demo">
+            <div class="range-demo-bar"></div>
+            <div class="range-demo-labels">
+                <span>10Y 最低</span>
+                <span style="color:#6b7280;font-weight:500">20% 值</span>
+                <span style="color:#6b7280;font-weight:500">80% 值</span>
+                <span>10Y 最高</span>
+            </div>
+            <p style="margin-top:12px;font-size:12px;color:var(--text-muted);">
+                浅蓝色区域 = 20%-80% 区间（近 10 年 60% 的时间落在这里）<br>
+                深蓝色方块 = 当前值位置
+            </p>
+        </div>
+        <p><strong>如何解读：</strong></p>
+        <ul style="font-size:13px;color:var(--text-secondary);padding-left:20px;margin-bottom:12px;">
+            <li>当前值在范围条<strong>偏左</strong>（靠近最低值）→ 历史低位，可能偏便宜</li>
+            <li>当前值在范围条<strong>偏右</strong>（靠近最高值）→ 历史高位，可能偏贵</li>
+            <li>当前值在<strong>浅蓝色区域内</strong>→ 正常波动范围</li>
+            <li>当前值<strong>超出浅蓝色区域</strong>→ 需要关注，可能偏离常态</li>
+        </ul>
+
+        <div class="tip">💡 <strong>百分位和范围条配合使用：</strong>百分位告诉你"比多少时间贵"，范围条告诉你"绝对值范围有多大"。比如 CAPE 42.5 在 99%ile，说明比近 10 年 99% 的时间都贵，而范围条显示它已触及 10 年最高点 42.66。</div>
+
+        <!-- ==================== 使用建议 ==================== -->
+        <h2>🎯 如何使用这份报告</h2>
+        <p>这份报告的目标是帮你判断<strong>当前市场整体是偏贵还是偏便宜</strong>，而不是预测短期涨跌。</p>
+        <ul style="font-size:13px;color:var(--text-secondary);padding-left:20px;margin-bottom:12px;">
+            <li><strong>长期投资者：</strong>关注综合估值信号。偏便宜时可适当加仓，偏贵时考虑减仓或定投。</li>
+            <li><strong>不要只看一个指标：</strong>PE 可能因盈利周期失真，CAPE 更稳定但更新慢，多个指标交叉验证更可靠。</li>
+            <li><strong>百分位比绝对值更重要：</strong>PE 28 在美股算贵，在某些高增长市场可能算便宜。看它在历史中处于什么位置更有参考价值。</li>
+            <li><strong>估值≠择时：</strong>市场可以在"偏贵"状态下继续涨很久，也可以在"偏便宜"状态下继续跌。估值是长期参考，不是交易信号。</li>
+        </ul>
+
+        <div class="card" style="background:#fef3c7;border-color:#fbbf24;">
+            <p style="color:#92400e;font-size:13px;"><strong>⚠️ 免责声明：</strong>本报告仅供学习参考，不构成任何投资建议。投资有风险，决策需谨慎。数据来源：Yahoo Finance、multpl.com、FRED。</p>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center;padding:40px 0 0;color:var(--text-muted);font-size:12px;">
+            <p>数据每小时自动更新 · 指标说明最后更新于 2026年5月</p>
+        </div>
+    </div>
+</body>
+</html>

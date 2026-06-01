@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量化模拟操盘 | Quantitative Trading Simulation</title>
+    <link href="https://fonts.googleapis.com/css2?family=LXGW+Mono:wght@400;700&family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #faf9f7; --bg-card: #ffffff; --bg-beige: #f5f0eb;
+            --text-primary: #1a1a1a; --text-secondary: #6b7280; --text-muted: #9ca3af;
+            --border: #e5e2dd; --accent: #d97706; --accent-light: #fef3c7;
+            --green: #16a34a; --green-bg: #f0fdf4; --red: #dc2626; --red-bg: #fef2f2;
+            --blue: #2563eb; --blue-bg: #dbeafe; --purple: #7c3aed; --purple-bg: #ede9fe;
+            --cyan: #0891b2; --pink: #db2777;
+            --radius: 16px; --radius-sm: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        body {
+            font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg); color: var(--text-primary); line-height: 1.7;
+            min-height: 100vh; -webkit-font-smoothing: antialiased;
+        }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+        /* Tabs */
+        .market-tabs { display: flex; justify-content: center; gap: 8px; margin: 24px 0 16px; flex-wrap: wrap; }
+        .market-tab {
+            padding: 10px 28px; border-radius: 100px; background: var(--bg-card);
+            color: var(--text-secondary); border: 1px solid var(--border);
+            text-decoration: none; font-size: 15px; transition: all 0.2s; font-family: inherit;
+        }
+        .market-tab:hover { color: var(--text-primary); border-color: var(--accent); }
+        .market-tab.active { background: var(--text-primary); color: white; border-color: var(--text-primary); font-weight: 700; }
+
+        /* Header */
+        .header { text-align: center; padding: 24px 0 16px; }
+        .header h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+        .header .subtitle { color: var(--text-secondary); font-size: 14px; font-weight: 300; }
+        .header .update-time { color: var(--text-muted); font-size: 12px; margin-top: 8px; }
+
+        /* Filter bar */
+        .filter-bar { display: flex; justify-content: center; gap: 12px; margin-bottom: 32px; flex-wrap: wrap; align-items: center; }
+        .filter-btn {
+            padding: 8px 20px; border-radius: 100px; background: var(--bg-card);
+            color: var(--text-secondary); border: 1px solid var(--border);
+            cursor: pointer; font-size: 13px; font-family: inherit; transition: all 0.2s;
+        }
+        .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
+        .filter-label { font-size: 13px; color: var(--text-muted); margin-right: 4px; }
+
+        /* Summary Cards */
+        .summary-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .summary-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 20px; text-align: center; box-shadow: var(--shadow);
+        }
+        .summary-card .s-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        .summary-card .s-value { font-size: 28px; font-weight: 700; font-family: 'LXGW Mono', monospace; }
+        .summary-card .s-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+        /* Section */
+        .section { margin-bottom: 40px; }
+        .section-title { font-size: 20px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        /* Comparison Table */
+        .comp-table-wrap { overflow-x: auto; margin-bottom: 32px; }
+        .comp-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .comp-table th {
+            background: var(--bg-beige); padding: 12px 16px; text-align: left;
+            font-weight: 600; font-size: 12px; color: var(--text-secondary);
+            text-transform: uppercase; letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--border); white-space: nowrap;
+        }
+        .comp-table td {
+            padding: 12px 16px; border-bottom: 1px solid var(--border);
+            vertical-align: middle; white-space: nowrap;
+        }
+        .comp-table tr:hover { background: var(--accent-light); }
+        .comp-table .strat-name { font-weight: 600; }
+        .comp-table .type-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 10px;
+            font-size: 11px; font-weight: 600;
+        }
+        .type-short { background: var(--blue-bg); color: var(--blue); }
+        .type-long { background: var(--green-bg); color: var(--green); }
+        .type-bench { background: var(--bg-beige); color: var(--text-secondary); }
+        .val-up { color: var(--red); font-weight: 600; }
+        .val-down { color: var(--green); font-weight: 600; }
+        .val-good { color: var(--green); font-weight: 600; }
+        .val-bad { color: var(--red); font-weight: 600; }
+
+        /* Market Card */
+        .market-card {
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 28px; margin-bottom: 24px; box-shadow: var(--shadow);
+        }
+        .market-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .market-title { font-size: 20px; font-weight: 700; }
+        .market-meta { font-size: 13px; color: var(--text-muted); }
+
+        /* Strategy Cards Grid */
+        .strat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+        .strat-card {
+            background: var(--bg-beige); border: 1px solid var(--border); border-radius: var(--radius-sm);
+            padding: 16px; cursor: pointer; transition: all 0.2s;
+        }
+        .strat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+        .strat-card.expanded { grid-column: 1 / -1; }
+        .strat-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .strat-name { font-size: 15px; font-weight: 700; }
+        .strat-type { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+        .strat-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; }
+        .strat-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .strat-m { text-align: center; }
+        .strat-m .m-label { font-size: 11px; color: var(--text-muted); }
+        .strat-m .m-value { font-size: 16px; font-weight: 700; font-family: 'LXGW Mono', monospace; }
+
+        /* Equity Chart */
+        .equity-chart-wrap { margin-top: 16px; padding: 12px; background: var(--bg-card); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+        .equity-chart-container { position: relative; height: 200px; }
+
+        /* Trade Log */
+        .trade-log { margin-top: 12px; max-height: 200px; overflow-y: auto; }
+        .trade-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 12px; font-size: 12px; border-bottom: 1px solid var(--border);
+        }
+        .trade-item .t-date { color: var(--text-muted); font-family: monospace; min-width: 90px; }
+        .trade-item .t-action { font-weight: 700; min-width: 50px; }
+        .trade-item .t-action.buy { color: var(--red); }
+        .trade-item .t-action.sell { color: var(--green); }
+        .trade-item .t-price { font-family: monospace; }
+        .trade-item .t-pnl { font-family: monospace; font-weight: 600; }
+
+        /* Legend */
+        .legend-row { display: flex; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+        /* Footer */
+        .footer { text-align: center; padding: 40px 0; color: var(--text-muted); font-size: 12px; border-top: 1px solid var(--border); }
+
+        /* Error */
+        .error-box { background: var(--red-bg); border: 1px solid #fca5a5; border-radius: var(--radius-sm); padding: 20px 24px; margin-bottom: 24px; color: var(--red); font-size: 14px; }
+
+        /* Refresh */
+        .refresh-btn { position: fixed; bottom: 28px; right: 28px; width: 48px; height: 48px; border-radius: 50%; background: var(--text-primary); color: white; border: none; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.15); transition: transform 0.2s; z-index: 100; font-family: inherit; }
+        .refresh-btn:hover { transform: scale(1.1); }
+        .refresh-btn.spinning { animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-msg { text-align: center; padding: 80px 0; color: var(--text-muted); font-size: 16px; }
+
+        @media (max-width: 768px) {
+            .container { padding: 0 16px; }
+            .strat-grid { grid-template-columns: 1fr; }
+            .strat-metrics { grid-template-columns: repeat(2, 1fr); }
+            .summary-row { grid-template-columns: repeat(2, 1fr); }
+            .comp-table { font-size: 12px; }
+            .comp-table th, .comp-table td { padding: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 量化模拟操盘</h1>
+            <div class="subtitle">三市场 × 8策略 · 长期 & 短期量化投资模拟 · 回测 {{ years|int }} 年</div>
+            <div class="update-time">{{ comparison.updated_at if comparison.updated_at else '' }}</div>
+        </div>
+
+        <div class="market-tabs">
+            <a href="/us" class="market-tab">🇺🇸 美股</a>
+            <a href="/hk" class="market-tab">🇭🇰 港股</a>
+            <a href="/cn" class="market-tab">🇨🇳 A股</a>
+            <a href="/webank" class="market-tab" style="border-color:var(--green);color:var(--green);">🏦 微众理财</a>
+            <a href="/trading" class="market-tab active" style="border-color:var(--accent);color:var(--accent);">📈 模拟操盘</a>
+        </div>
+
+        {% if error is defined and error %}
+        <div class="error-box">⚠️ 加载异常：{{ error }}</div>
+        {% endif %}
+
+        <!-- 回测年限选择 -->
+        <div class="filter-bar">
+            <span class="filter-label">回测周期：</span>
+            <a href="/trading?years=1" class="filter-btn {% if years == 1 %}active{% endif %}">1年</a>
+            <a href="/trading?years=2" class="filter-btn {% if years == 2 %}active{% endif %}">2年</a>
+            <a href="/trading?years=3" class="filter-btn {% if years == 3 %}active{% endif %}">3年</a>
+            <a href="/trading?years=5" class="filter-btn {% if years == 5 %}active{% endif %}">5年</a>
+        </div>
+
+        {# ═══════════════════════════════ #}
+        {#  策略综合排名                    #}
+        {# ═══════════════════════════════ #}
+        {% if comparison.strategies %}
+        <div class="section">
+            <div class="section-title">🏆 策略综合排名（全市场平均）</div>
+            <div class="comp-table-wrap">
+                <table class="comp-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>策略</th>
+                            <th>类型</th>
+                            <th>平均总收益</th>
+                            <th>平均年化</th>
+                            <th>平均夏普</th>
+                            <th>平均最大回撤</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in comparison.strategies %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td class="strat-name">{{ s.name }}</td>
+                            <td>
+                                <span class="type-badge {% if s.strategy_type == 'short_term' %}type-short{% elif s.strategy_type == 'long_term' %}type-long{% else %}type-bench{% endif %}">
+                                    {% if s.strategy_type == 'short_term' %}短期{% elif s.strategy_type == 'long_term' %}长期{% else %}基准{% endif %}
+                                </span>
+                            </td>
+                            <td class="{{ 'val-up' if s.overall_avg_return > 0 else 'val-down' }}">{{ "%+.2f"|format(s.overall_avg_return) }}%</td>
+                            <td class="{{ 'val-up' if s.overall_avg_return > 0 else 'val-down' }}">
+                                {% if s.markets %}
+                                    {% set ns = namespace(avg_annual=0, cnt=0) %}
+                                    {% for mk, mv in s.markets.items() %}
+                                        {% set ns.avg_annual = ns.avg_annual + mv.avg_annual_return %}
+                                        {% set ns.cnt = ns.cnt + 1 %}
+                                    {% endfor %}
+                                    {{ "%+.2f"|format(ns.avg_annual / ns.cnt if ns.cnt > 0 else 0) }}%
+                                {% else %}--{% endif %}
+                            </td>
+                            <td class="{{ 'val-good' if s.overall_avg_sharpe > 0.5 else ('val-bad' if s.overall_avg_sharpe < 0 else '') }}">
+                                {{ "%.2f"|format(s.overall_avg_sharpe) }}
+                            </td>
+                            <td>
+                                {% if s.markets %}
+                                    {% set ns2 = namespace(avg_mdd=0, cnt=0) %}
+                                    {% for mk, mv in s.markets.items() %}
+                                        {% set ns2.avg_mdd = ns2.avg_mdd + mv.avg_max_drawdown %}
+                                        {% set ns2.cnt = ns2.cnt + 1 %}
+                                    {% endfor %}
+                                    <span class="val-bad">{{ "%.2f"|format(ns2.avg_mdd / ns2.cnt if ns2.cnt > 0 else 0) }}%</span>
+                                {% else %}--{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 策略对比图 -->
+        <div class="section">
+            <div class="section-title">📊 策略收益对比</div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);">
+                <div style="position:relative;height:320px;">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# ═══════════════════════════════ #}
+        {#  各市场详细回测                  #}
+        {# ═══════════════════════════════ #}
+        {% for mkey, mdata in data.items() %}
+        {% if mdata is mapping and mdata.instruments is defined %}
+        <div class="market-card">
+            <div class="market-header">
+                <div class="market-title">{{ mdata.flag }} {{ mdata.market_name }} 模拟操盘</div>
+                <div class="market-meta">初始资金: {{ mdata.currency }}{{ "{:,}".format(mdata.initial_capital|int) }} · 回测 {{ years|int }} 年</div>
+            </div>
+
+            {% for sym, inst in mdata.instruments.items() %}
+            <div style="margin-bottom: 24px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                    <div style="font-size:16px;font-weight:700;">{{ inst.name }} <span style="font-weight:300;color:var(--text-muted);font-size:13px;">{{ sym }}</span></div>
+                    <div style="font-size:13px;color:var(--text-muted);">{{ inst.data_start }} ~ {{ inst.data_end }} · 当前价 {{ mdata.currency }}{{ inst.current_price }}</div>
+                </div>
+
+                <!-- Buy & Hold 基准 -->
+                {% if inst.buy_and_hold and inst.buy_and_hold.metrics %}
+                <div class="strat-card" style="margin-bottom:12px;border-left:3px solid var(--text-muted);" onclick="toggleExpand(this)">
+                    <div class="strat-head">
+                        <div>
+                            <span class="strat-name">📊 {{ inst.buy_and_hold.name }}</span>
+                            <span class="strat-type type-bench" style="margin-left:8px;">基准</span>
+                        </div>
+                    </div>
+                    <div class="strat-metrics">
+                        <div class="strat-m"><div class="m-label">总收益</div><div class="m-value {{ 'val-up' if inst.buy_and_hold.metrics.total_return > 0 else 'val-down' }}">{{ "%+.2f"|format(inst.buy_and_hold.metrics.total_return) }}%</div></div>
+                        <div class="strat-m"><div class="m-label">年化</div><div class="m-value {{ 'val-up' if inst.buy_and_hold.metrics.annual_return > 0 else 'val-down' }}">{{ "%+.2f"|format(inst.buy_and_hold.metrics.annual_return) }}%</div></div>
+                        <div class="strat-m"><div class="m-label">夏普</div><div class="m-value">{{ "%.2f"|format(inst.buy_and_hold.metrics.sharpe_ratio) }}</div></div>
+                        <div class="strat-m"><div class="m-label">最大回撤</div><div class="m-value val-bad">{{ "%.2f"|format(inst.buy_and_hold.metrics.max_drawdown) }}%</div></div>
+                    </div>
+                    <div class="equity-chart-wrap">
+                        <div class="equity-chart-container"><canvas id="bh_{{ mkey }}_{{ sym|replace('.','_') }}"></canvas></div>
+                    </div>
+                </div>
+                <script>
+                    (function() {
+                        const ec = {{ inst.buy_and_hold.equity_curve | tojson }};
+                        const labels = ec.map(e => e.date);
+                        const values = ec.map(e => e.value);
+                        const initVal = {{ inst.buy_and_hold.metrics.initial_capital }};
+                        const pcts = values.map(v => ((v - initVal) / initVal * 100).toFixed(2));
+                        new Chart(document.getElementById('bh_{{ mkey }}_{{ sym|replace(".","_") }}'), {
+                            type: 'line',
+                            data: { labels, datasets: [{ label: '买入持有', data: pcts, borderColor: '#9ca3af', backgroundColor: 'rgba(156,163,175,0.08)', fill: true, pointRadius: 0, borderWidth: 1.5, tension: 0.3 }] },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.dataset.label+': '+c.parsed.y+'%' } } }, scales: { x: { display: false }, y: { ticks: { callback: v => v+'%', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } } } }
+                        });
+                    })();
+                </script>
+                {% endif %}
+
+                <!-- 各策略 -->
+                <div class="strat-grid">
+                    {% for sname, sdata in inst.strategies.items() %}
+                    {% if sdata.metrics %}
+                    <div class="strat-card" onclick="toggleExpand(this)">
+                        <div class="strat-head">
+                            <span class="strat-name">{{ sdata.name }}</span>
+                            <span class="strat-type {% if sdata.strategy_type == 'short_term' %}type-short{% elif sdata.strategy_type == 'long_term' %}type-long{% else %}type-bench{% endif %}">
+                                {% if sdata.strategy_type == 'short_term' %}短期{% else %}长期{% endif %}
+                            </span>
+                        </div>
+                        <div class="strat-desc">{{ sdata.description }}</div>
+                        <div class="strat-metrics">
+                            <div class="strat-m"><div class="m-label">总收益</div><div class="m-value {{ 'val-up' if sdata.metrics.total_return > 0 else 'val-down' }}">{{ "%+.2f"|format(sdata.metrics.total_return) }}%</div></div>
+                            <div class="strat-m"><div class="m-label">年化</div><div class="m-value {{ 'val-up' if sdata.metrics.annual_return > 0 else 'val-down' }}">{{ "%+.2f"|format(sdata.metrics.annual_return) }}%</div></div>
+                            <div class="strat-m"><div class="m-label">夏普</div><div class="m-value">{{ "%.2f"|format(sdata.metrics.sharpe_ratio) }}</div></div>
+                            <div class="strat-m"><div class="m-label">回撤</div><div class="m-value val-bad">{{ "%.2f"|format(sdata.metrics.max_drawdown) }}%</div></div>
+                        </div>
+                        <!-- 展开时显示 -->
+                        <div class="expand-content" style="display:none;">
+                            <div class="equity-chart-wrap">
+                                <div class="legend-row">
+                                    <div class="legend-item"><span class="legend-dot" style="background:#9ca3af"></span>买入持有</div>
+                                    <div class="legend-item"><span class="legend-dot" style="background:{{ '#2563eb' if sdata.strategy_type == 'short_term' else '#16a34a' }}"></span>{{ sdata.name }}</div>
+                                </div>
+                                <div class="equity-chart-container"><canvas id="eq_{{ mkey }}_{{ sym|replace('.','_') }}_{{ loop.index }}"></canvas></div>
+                            </div>
+                            {% if sdata.trades %}
+                            <div style="margin-top:12px;">
+                                <div style="font-size:13px;font-weight:600;margin-bottom:8px;">最近交易记录</div>
+                                <div class="trade-log">
+                                    {% for t in sdata.trades %}
+                                    <div class="trade-item">
+                                        <span class="t-date">{{ t.date }}</span>
+                                        <span class="t-action {{ 'buy' if t.action == '买入' else 'sell' }}">{{ t.action }}</span>
+                                        <span class="t-price">{{ mdata.currency }}{{ t.price }}</span>
+                                        <span>{{ t.shares }}股</span>
+                                        {% if t.pnl is defined %}
+                                        <span class="t-pnl {{ 'val-up' if t.pnl > 0 else 'val-down' }}">{{ "%+.2f"|format(t.pnl) }} ({{ "%+.1f"|format(t.pnl_pct) }}%)</span>
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+                                <div class="strat-m"><div class="m-label">胜率</div><div class="m-value">{{ "%.1f"|format(sdata.metrics.win_rate) }}%</div></div>
+                                <div class="strat-m"><div class="m-label">交易次数</div><div class="m-value">{{ sdata.metrics.total_trades }}</div></div>
+                                <div class="strat-m"><div class="m-label">最终净值</div><div class="m-value">{{ mdata.currency }}{{ "{:,.0f}".format(sdata.metrics.final_value|int) }}</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        (function() {
+                            const ec = {{ sdata.equity_curve | tojson }};
+                            const bhEc = {{ inst.buy_and_hold.equity_curve | tojson if inst.buy_and_hold and inst.buy_and_hold.equity_curve else '[]' }};
+                            const labels = ec.map(e => e.date);
+                            const initVal = {{ sdata.metrics.initial_capital }};
+                            const values = ec.map(e => ((e.value - initVal) / initVal * 100).toFixed(2));
+                            const bhLabels = bhEc.map(e => e.date);
+                            const bhValues = bhEc.map(e => ((e.value - initVal) / initVal * 100).toFixed(2));
+                            const stratColor = '{{ "#2563eb" if sdata.strategy_type == "short_term" else "#16a34a" }}';
+                            const chartId = 'eq_{{ mkey }}_{{ sym|replace(".","_") }}_{{ loop.index }}';
+                            window['_chartData_'+chartId] = { labels, values, bhLabels, bhValues, stratColor, name: '{{ sdata.name }}' };
+                        })();
+                    </script>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endfor %}
+
+        <div class="section" style="margin-top:32px;">
+            <div class="section-title">💡 策略说明</div>
+            <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;box-shadow:var(--shadow);">
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
+                    <div><strong>📈 短期策略</strong><p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">双均线交叉、RSI均值回归、MACD动量、布林带突破、肯特纳通道。基于技术指标，信号频繁，适合波段操作。</p></div>
+                    <div><strong>🏦 长期策略</strong><p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">趋势跟踪(200日线)、价值平均定投、动量轮动。基于中长期趋势，调仓频率低，适合长期配置。</p></div>
+                    <div><strong>📊 买入持有(基准)</strong><p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">第一天全仓买入并持有至今。作为评判其他策略的基准——如果跑不赢它，策略就没有价值。</p></div>
+                    <div><strong>⚠️ 注意事项</strong><p style="font-size:13px;color:var(--text-secondary);margin-top:4px;">模拟不含滑点和真实交易费用(仅收0.1%佣金)。实盘中流动性、冲击成本、情绪管理都会影响收益。仅供学习参考。</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>⚠️ 仅供学习参考，不构成投资建议 · 模拟交易，非实盘</p>
+            <p>数据来源: Yahoo Finance · AKShare</p>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="refreshData()" title="刷新数据">🔄</button>
+
+    <script>
+        Chart.defaults.color = '#9ca3af';
+        Chart.defaults.font.family = "'LXGW WenKai', sans-serif";
+
+        // 策略对比柱状图
+        {% if comparison.strategies %}
+        (function() {
+            const strategies = {{ comparison.strategies | tojson }};
+            const labels = strategies.map(s => s.name);
+            const returns = strategies.map(s => s.overall_avg_return);
+            const colors = returns.map(v => v >= 0 ? '#dc2626' : '#16a34a');
+            const bgColors = returns.map(v => v >= 0 ? 'rgba(220,38,38,0.1)' : 'rgba(22,163,74,0.1)');
+
+            new Chart(document.getElementById('comparisonChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: '平均总收益 (%)',
+                        data: returns,
+                        backgroundColor: bgColors,
+                        borderColor: colors,
+                        borderWidth: 2,
+                        borderRadius: 8,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: c => '平均收益: ' + c.parsed.y.toFixed(2) + '%' } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+                        y: { ticks: { callback: v => v + '%', font: { size: 11 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+                    }
+                }
+            });
+        })();
+        {% endif %}
+
+        // 展开/折叠策略详情
+        function toggleExpand(card) {
+            const content = card.querySelector('.expand-content');
+            if (!content) return;
+            const isVisible = content.style.display !== 'none';
+            // 先全部折叠
+            document.querySelectorAll('.expand-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.strat-card.expanded').forEach(el => el.classList.remove('expanded'));
+
+            if (!isVisible) {
+                content.style.display = 'block';
+                card.classList.add('expanded');
+
+                // 懒加载图表
+                const canvas = content.querySelector('canvas');
+                if (canvas && !canvas._chartLoaded) {
+                    canvas._chartLoaded = true;
+                    const chartId = canvas.id;
+                    const d = window['_chartData_' + chartId];
+                    if (d) {
+                        new Chart(canvas, {
+                            type: 'line',
+                            data: {
+                                labels: d.labels,
+                                datasets: [
+                                    { label: '买入持有', data: d.bhValues, borderColor: '#9ca3af', backgroundColor: 'rgba(156,163,175,0.06)', fill: true, pointRadius: 0, borderWidth: 1.5, tension: 0.3, borderDash: [4, 4] },
+                                    { label: d.name, data: d.values, borderColor: d.stratColor, backgroundColor: d.stratColor + '18', fill: true, pointRadius: 0, borderWidth: 2.5, tension: 0.3 },
+                                ]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                interaction: { intersect: false, mode: 'index' },
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(26,26,26,0.92)', titleColor: '#fff', bodyColor: '#e5e7eb',
+                                        cornerRadius: 10, padding: { top:10,bottom:10,left:14,right:14 },
+                                        callbacks: { label: c => c.dataset.label + ': ' + (c.parsed.y >= 0 ? '+' : '') + c.parsed.y + '%' }
+                                    }
+                                },
+                                scales: {
+                                    x: { display: false },
+                                    y: { ticks: { callback: v => (v >= 0 ? '+' : '') + v + '%', font: { size: 10 } }, grid: { color: 'rgba(0,0,0,0.04)' } }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        async function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('spinning');
+            try { const r = await fetch('/api/refresh', { method: 'POST' }); if (r.ok) window.location.reload(); } catch(e) {} finally { btn.classList.remove('spinning'); }
+        }
+    </script>
+</body>
+</html>

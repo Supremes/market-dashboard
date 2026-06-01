@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股量化投资面板 | Quantitative Investment Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai:wght@300;400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #faf9f7;
+            --bg-card: #ffffff;
+            --bg-beige: #f5f0eb;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --border: #e5e2dd;
+            --accent: #d97706;
+            --accent-light: #fef3c7;
+            --green: #16a34a;
+            --green-bg: #f0fdf4;
+            --red: #dc2626;
+            --red-bg: #fef2f2;
+            --blue: #2563eb;
+            --blue-bg: #dbeafe;
+            --purple: #7c3aed;
+            --purple-bg: #ede9fe;
+            --radius: 16px;
+            --radius-sm: 12px;
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
+        }
+
+        body {
+            font-family: 'LXGW WenKai', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            line-height: 1.7;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            text-align: center;
+            padding: 48px 0 32px;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+        .header .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 300;
+        }
+        .header .update-time {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        /* ===== Navigation Tabs ===== */
+        .nav-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .nav-tab {
+            padding: 8px 20px;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .nav-tab:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .nav-tab.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        /* ===== Section ===== */
+        .section {
+            margin-bottom: 40px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title .icon {
+            font-size: 20px;
+        }
+
+        /* ===== Card Grid ===== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .card-grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        /* ===== Card ===== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+        }
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .card-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .card-symbol {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        /* ===== Price Display ===== */
+        .price-row {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .price {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: monospace;
+        }
+        .price.up { color: var(--red); }
+        .price.down { color: var(--green); }
+        .price.flat { color: var(--text-primary); }
+
+        .change {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+        .change.up { background: var(--red-bg); color: var(--red); }
+        .change.down { background: var(--green-bg); color: var(--green); }
+        .change.flat { background: var(--bg-beige); color: var(--text-secondary); }
+
+        /* ===== Metrics Grid ===== */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-beige);
+            border-radius: 8px;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .metric-value {
+            font-size: 13px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        /* ===== Signal Badge ===== */
+        .signal-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .signal-badge.buy { background: var(--green-bg); color: var(--green); }
+        .signal-badge.sell { background: var(--red-bg); color: var(--red); }
+        .signal-badge.neutral { background: var(--bg-beige); color: var(--text-secondary); }
+        .signal-badge.warning { background: var(--accent-light); color: var(--accent); }
+
+        /* ===== Technical Indicators ===== */
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .tech-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+        }
+        .tech-card .tech-title {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .tech-card .tech-value {
+            font-size: 20px;
+            font-weight: 700;
+            font-family: monospace;
+            margin-bottom: 4px;
+        }
+        .tech-card .tech-signal {
+            font-size: 12px;
+        }
+
+        /* ===== Risk Metrics ===== */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        .risk-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            text-align: center;
+        }
+        .risk-card .risk-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .risk-card .risk-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: monospace;
+        }
+        .risk-card .risk-desc {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ===== Refresh Button ===== */
+        .refresh-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent);
+            color: white;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s;
+            z-index: 100;
+        }
+        .refresh-btn:hover {
+            transform: scale(1.1);
+            background: #b45309;
+        }
+        .refresh-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== Data Source ===== */
+        .data-source {
+            text-align: center;
+            padding: 24px 0;
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+            .header {
+                padding: 32px 0 24px;
+            }
+            .header h1 {
+                font-size: 22px;
+            }
+            .card-grid-3 {
+                grid-template-columns: 1fr;
+            }
+            .tech-grid {
+                grid-template-columns: 1fr;
+            }
+            .risk-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📊 A股量化投资面板</h1>
+            <div class="subtitle">指数监控 · ETF追踪 · 技术分析 · 风险管理</div>
+            <div class="update-time">数据更新时间：{{ data.last_updated }}</div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="scrollToSection('indices')">📈 大盘指数</div>
+            <div class="nav-tab" onclick="scrollToSection('etf-broad')">🏦 宽基ETF</div>
+            <div class="nav-tab" onclick="scrollToSection('etf-dividend')">💰 红利低波</div>
+            <div class="nav-tab" onclick="scrollToSection('technical')">📊 技术分析</div>
+            <div class="nav-tab" onclick="scrollToSection('risk')">📉 风险指标</div>
+        </div>
+
+        <!-- 大盘指数 -->
+        <div class="section" id="indices">
+            <div class="section-title">
+                <span class="icon">📈</span> 大盘指数
+            </div>
+            <div class="card-grid">
+                {% for index in data.indices %}
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-name">{{ index.name }}</span>
+                        <span class="card-symbol">{{ index.symbol }}</span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price {{ 'up' if index.change_pct > 0 else ('down' if index.change_pct < 0 else 'flat') }}">
+                            {{ "%.2f"|format(index.price) }}
+                        </span>
+                        <span class="change {{ 'up' if index.change_pct > 0 else ('down' if index.change_pct < 0 else 'flat') }}">
+                            {{ "+" if index.change_pct > 0 else "" }}{{ "%.2f"|format(index.change_pct) }}%
+                        </span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span class="metric-label">成交额</span>
+                            <span class="metric-value">{{ "%.0f"|format(index.volume / 100000000) }}亿</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">振幅</span>
+                            <span class="metric-value">{{ "%.2f"|format((index.high - index.low) / index.prev_close * 100) }}%</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 宽基ETF -->
+        <div class="section" id="etf-broad">
+            <div class="section-title">
+                <span class="icon">🏦</span> 宽基ETF
+            </div>
+            <div class="card-grid">
+                {% for etf in data.etfs.broad %}
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-name">{{ etf.name }}</span>
+                        <span class="card-symbol">{{ etf.symbol }}</span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price {{ 'up' if etf.change_pct > 0 else ('down' if etf.change_pct < 0 else 'flat') }}">
+                            {{ "%.3f"|format(etf.price) }}
+                        </span>
+                        <span class="change {{ 'up' if etf.change_pct > 0 else ('down' if etf.change_pct < 0 else 'flat') }}">
+                            {{ "+" if etf.change_pct > 0 else "" }}{{ "%.2f"|format(etf.change_pct) }}%
+                        </span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span class="metric-label">基准</span>
+                            <span class="metric-value">{{ etf.benchmark }}</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">成交额</span>
+                            <span class="metric-value">{{ "%.1f"|format(etf.volume / 100000000) }}亿</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 红利低波 -->
+        <div class="section" id="etf-dividend">
+            <div class="section-title">
+                <span class="icon">💰</span> 红利低波ETF
+            </div>
+            <div class="card-grid">
+                {% for etf in data.etfs.dividend_low_vol %}
+                <div class="card">
+                    <div class="card-header">
+                        <span class="card-name">{{ etf.name }}</span>
+                        <span class="card-symbol">{{ etf.symbol }}</span>
+                    </div>
+                    <div class="price-row">
+                        <span class="price {{ 'up' if etf.change_pct > 0 else ('down' if etf.change_pct < 0 else 'flat') }}">
+                            {{ "%.3f"|format(etf.price) }}
+                        </span>
+                        <span class="change {{ 'up' if etf.change_pct > 0 else ('down' if etf.change_pct < 0 else 'flat') }}">
+                            {{ "+" if etf.change_pct > 0 else "" }}{{ "%.2f"|format(etf.change_pct) }}%
+                        </span>
+                    </div>
+                    <div class="metrics-grid">
+                        <div class="metric-item">
+                            <span class="metric-label">基准</span>
+                            <span class="metric-value">{{ etf.benchmark }}</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">成交额</span>
+                            <span class="metric-value">{{ "%.1f"|format(etf.volume / 100000000) }}亿</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 技术分析 -->
+        <div class="section" id="technical">
+            <div class="section-title">
+                <span class="icon">📊</span> 技术分析
+            </div>
+            {% for symbol, tech in data.technical.items() %}
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="card-header">
+                    <span class="card-name">{{ symbol }} 技术指标</span>
+                    <span class="card-symbol">{{ "%.2f"|format(tech.current_price) }}</span>
+                </div>
+                <div class="tech-grid">
+                    <!-- RSI -->
+                    <div class="tech-card">
+                        <div class="tech-title">RSI (14)</div>
+                        <div class="tech-value" style="color: {{ 'var(--red)' if tech.rsi.value and tech.rsi.value > 70 else ('var(--green)' if tech.rsi.value and tech.rsi.value < 30 else 'var(--text-primary)') }}">
+                            {{ tech.rsi.value if tech.rsi.value else '--' }}
+                        </div>
+                        <div class="tech-signal">
+                            <span class="signal-badge {{ 'sell' if tech.rsi.signal == '超买' else ('buy' if tech.rsi.signal == '超卖' else 'neutral') }}">
+                                {{ tech.rsi.signal }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- MACD -->
+                    <div class="tech-card">
+                        <div class="tech-title">MACD</div>
+                        <div class="tech-value" style="color: {{ 'var(--red)' if tech.macd.histogram and tech.macd.histogram > 0 else 'var(--green)' }}">
+                            {{ tech.macd.histogram if tech.macd.histogram else '--' }}
+                        </div>
+                        <div class="tech-signal">
+                            <span class="signal-badge {{ 'buy' if tech.macd.signal_text == '金叉' else ('sell' if tech.macd.signal_text == '死叉' else 'neutral') }}">
+                                {{ tech.macd.signal_text }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 布林带 -->
+                    <div class="tech-card">
+                        <div class="tech-title">布林带位置</div>
+                        <div class="tech-value">
+                            {{ "%.1f"|format(tech.bollinger.position) if tech.bollinger.position else '--' }}%
+                        </div>
+                        <div class="tech-signal">
+                            <span class="signal-badge {{ 'sell' if tech.bollinger.signal == '接近上轨' else ('buy' if tech.bollinger.signal == '接近下轨' else 'neutral') }}">
+                                {{ tech.bollinger.signal }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 均线 -->
+                <div style="margin-top: 16px;">
+                    <div class="tech-title" style="margin-bottom: 8px;">均线系统</div>
+                    <div class="metrics-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        {% for ma_name, ma_value in tech.moving_averages.items() %}
+                        <div class="metric-item">
+                            <span class="metric-label">{{ ma_name|upper }}</span>
+                            <span class="metric-value" style="color: {{ 'var(--red)' if tech.current_price > (ma_value or 0) else 'var(--green)' }}">
+                                {{ "%.2f"|format(ma_value) if ma_value else '--' }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 风险指标 -->
+        <div class="section" id="risk">
+            <div class="section-title">
+                <span class="icon">📉</span> 风险指标
+            </div>
+            {% for symbol, risk in data.risk_metrics.items() %}
+            <div class="card" style="margin-bottom: 16px;">
+                <div class="card-header">
+                    <span class="card-name">{{ symbol }} 风险指标</span>
+                    <span class="card-symbol">近1年</span>
+                </div>
+                <div class="risk-grid">
+                    <div class="risk-card">
+                        <div class="risk-label">年化收益</div>
+                        <div class="risk-value" style="color: {{ 'var(--red)' if risk.annual_return > 0 else 'var(--green)' }}">
+                            {{ "%.2f"|format(risk.annual_return) }}%
+                        </div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">年化波动</div>
+                        <div class="risk-value">{{ "%.2f"|format(risk.annual_volatility) }}%</div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">夏普比率</div>
+                        <div class="risk-value" style="color: {{ 'var(--green)' if risk.sharpe_ratio > 0 else 'var(--red)' }}">
+                            {{ "%.2f"|format(risk.sharpe_ratio) }}
+                        </div>
+                        <div class="risk-desc">{{ '优秀' if risk.sharpe_ratio > 1 else ('良好' if risk.sharpe_ratio > 0 else '较差') }}</div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">最大回撤</div>
+                        <div class="risk-value" style="color: var(--red)">
+                            {{ "%.2f"|format(risk.max_drawdown) }}%
+                        </div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">卡尔玛比率</div>
+                        <div class="risk-value">{{ "%.2f"|format(risk.calmar_ratio) }}</div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">胜率</div>
+                        <div class="risk-value">{{ "%.1f"|format(risk.win_rate) }}%</div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">盈亏比</div>
+                        <div class="risk-value">{{ "%.2f"|format(risk.profit_loss_ratio) }}</div>
+                    </div>
+                    <div class="risk-card">
+                        <div class="risk-label">总收益</div>
+                        <div class="risk-value" style="color: {{ 'var(--red)' if risk.total_return > 0 else 'var(--green)' }}">
+                            {{ "%.2f"|format(risk.total_return) }}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 数据来源 -->
+        <div class="data-source">
+            数据来源：AKShare · 仅供参考，不构成投资建议
+        </div>
+    </div>
+
+    <!-- Refresh Button -->
+    <button class="refresh-btn" onclick="refreshData()" title="刷新数据">🔄</button>
+
+    <script>
+        // 滚动到指定区域
+        function scrollToSection(id) {
+            document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+            // 更新 tab 状态
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        // 刷新数据
+        async function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('loading');
+
+            try {
+                const response = await fetch('/api/refresh', { method: 'POST' });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    alert('刷新失败，请稍后重试');
+                }
+            } catch (error) {
+                alert('网络错误：' + error.message);
+            } finally {
+                btn.classList.remove('loading');
+            }
+        }
+
+        // 自动刷新（每5分钟）
+        setInterval(() => {
+            window.location.reload();
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
